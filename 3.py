@@ -1,68 +1,63 @@
+import csv
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 import time
 
-# Initialize WebDriver
-driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
-
-try:
-    # Open the Twitter profile page
-    twitter_url = "https://twitter.com/GTNUK1"  # Replace with the desired Twitter URL
-    driver.get(twitter_url)
+# Function to scrape Twitter profile data
+def scrape_twitter_profile(driver, profile_url):
+    driver.get(profile_url)
+    time.sleep(20)  # Adjust sleep time if necessary
     
-    # Wait for the page to load
-    wait = WebDriverWait(driver, 20)
-    
-    # Scroll to ensure content is loaded
-    driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-    time.sleep(3)  # Allow time for content to load
-    
-    # Fetch Bio
     try:
-        bio_element = wait.until(EC.presence_of_element_located((By.XPATH, '//div[@data-testid="UserDescription"]')))
-        bio = bio_element.text
-    except Exception:
+        bio = driver.find_element(By.XPATH, "//div[@data-testid='UserDescription']").text
+    except:
         bio = "Bio not available"
-    
-    # Fetch Following Count
+        
     try:
-        following_element = wait.until(EC.presence_of_element_located((By.XPATH, '//a[contains(@href, "/following")]/span[1]/span')))
-        following_count = following_element.text
-    except Exception:
-        following_count = "Following count not available"
-    
-    # Fetch Followers Count
+        followers = driver.find_element(By.XPATH, "//a[contains(@href, '/followers')]").text
+    except:
+        followers = "Followers count not available"
+        
     try:
-        followers_element = wait.until(EC.presence_of_element_located((By.XPATH, '//a[contains(@href, "/followers")]/span[1]/span')))
-        followers_count = followers_element.text
-    except Exception:
-        followers_count = "Followers count not available"
+        following = driver.find_element(By.XPATH, "//a[contains(@href, '/following')]").text
+    except:
+        following = "Following count not available"
     
-    # Fetch Location
-    try:
-        location_element = wait.until(EC.presence_of_element_located((By.XPATH, '//div[@data-testid="UserProfileHeader_Items"]/span')))
-        location = location_element.text
-    except Exception:
-        location = "Location not available"
+    return {"url": profile_url, "bio": bio, "followers": followers, "following": following}
+
+# Read input CSV and scrape data
+def scrape_from_csv(input_csv, output_csv):
+    # Setup Selenium WebDriver
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
     
-    # Fetch Website
-    try:
-        website_element = wait.until(EC.presence_of_element_located((By.XPATH, '//div[@data-testid="UserProfileHeader_Items"]/a')))
-        website = website_element.get_attribute("href")
-    except Exception:
-        website = "Website not available"
+    # Prepare for writing results
+    results = []
+    with open(input_csv, "r") as infile:
+        reader = csv.reader(infile)
+        next(reader)  # Skip the header if present
+        for row in reader:
+            profile_url = row[0].strip()  # Assuming the URL is in the first column
+            print(f"Scraping: {profile_url}")
+            try:
+                data = scrape_twitter_profile(driver, profile_url)
+                results.append(data)
+            except Exception as e:
+                print(f"Error scraping {profile_url}: {e}")
     
-    # Print the details
-    print(f"Bio: {bio}")
-    print(f"Following Count: {following_count}")
-    print(f"Followers Count: {followers_count}")
-    print(f"Location: {location}")
-    print(f"Website: {website}")
+    # Write results to output CSV
+    with open(output_csv, "w", newline="", encoding="utf-8") as outfile:
+        writer = csv.DictWriter(outfile, fieldnames=["url", "bio", "followers", "following"])
+        writer.writeheader()
+        writer.writerows(results)
     
-finally:
-    # Quit the browser
     driver.quit()
+    print(f"Scraping completed. Results saved to {output_csv}")
+
+# File paths
+input_csv = "twitter_links.csv"  # Input file with profile URLs
+output_csv = "twitter_data3.csv"    # Output file for results
+
+# Start scraping
+scrape_from_csv(input_csv, output_csv)
