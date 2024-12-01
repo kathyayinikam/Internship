@@ -4,7 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 import time
-
+import csv
 # Database configuration
 DB_CONFIG = {
     "host": "localhost",  # XAMPP default host
@@ -74,7 +74,7 @@ def scrape_from_csv(input_csv):
     print("Scraping and database update completed.")
 
 # File paths
-input_csv = "twitter_links.csv"  # Input file with profile URLs
+input_csv = "C:\\Users\\Admin\\Downloads\\twitter_links.csv"  # Input file with profile URLs
 
 # Start scraping
 scrape_from_csv(input_csv)
